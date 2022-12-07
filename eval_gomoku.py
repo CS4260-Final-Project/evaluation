@@ -9,23 +9,19 @@ empty = 0
 taken = 3
 black = 1
 white = 2
-fiverow = [[1,1,1,1,2],[1,1,1,2,1],[1,1,2,1,1],[1,2,1,1,1],[2,1,1,1,1]]
-open4 = [[0,1,1,1,2,0],[0,2,1,1,1,0],[0,1,1,2,1,0],[0,1,2,1,1,0],[-1,1,1,0,1,0,2,1,1,-1],
-         [-1,1,1,0,1,0,1,2,1,-1],[-1,1,1,0,1,0,1,1,2,-1],[-1,1,1,0,2,0,1,1,1,-1],[-1,1,2,0,1,0,1,1,1,-1],[-1,2,1,0,1,0,1,1,1,-1],
-         [-1,1,1,1,0,2,0,1,1,1,-1]]
-simp4 = [[-1,1,1,1,2,0],[0,1,1,1,2,-1],[1,2,0,1,1]]
-open3 = [[0,0,1,1,2,0,0],[0,0,2,1,1,0,0],[0,0,1,2,1,0,0],[0,1,0,1,2,0,1,0],[0,1,0,2,1,0,1,0],[0,1,0,1,1,0,2,0],[0,2,0,1,1,0,1,0],
-         [1,0,1,0,2,0,1,0,1],[2,0,1,0,1,0,1,0,1],[1,0,2,0,1,0,1,0,1],[1,0,1,0,1,0,2,0,1],[1,0,1,0,1,0,1,0,2]]
-broken3 = [[0,1,0,2,1,0],[0,1,0,1,2,0],[0,2,0,1,1,0],
-           [-1,0,1,1,2,0,0],[-1,0,1,2,1,0,0],[-1,0,2,1,1,0,0],[0,0,1,1,2,0,-1],[0,0,1,2,1,0,-1],[0,0,2,1,1,0,-1]]
-simp3 = [[0,2,1,1,0],[0,1,2,1,0],[0,1,1,2,0]]
-simp2 = [[0,2,1,0,0],[0,1,2,0,0],[0,0,1,2,0],[0,0,2,1,0]]
-starting = []
+fiverow = [1,1,1,1,1]
+open4 = [[0,1,1,1,1,0],[-1,1,1,0,1,0,1,1,1,-1],[-1,1,1,0,1,0,1,1,1,-1]]
+simp4 = [[-1,1,1,1,1,0],[0,1,1,1,1,-1],[1,1,0,1,1]]
+open3 = [[0,0,1,1,1,0,0],[0,1,0,1,1,0,1,0],[1,0,1,0,1,0,1,0,1]]
+broken3 = [[0,1,1,0,1,0],[0,1,0,1,1,0],[-1,0,1,1,1,0,0],[0,0,1,1,1,0,-1]]
+# open3s = [[0,1,1,1,0]]
+simp3 = [[-1,1,1,1,0,0],[0,0,1,1,1,-1]]
+simp2 = [[0,1,1,0,0,0],[0,0,1,1,0,0],[0,0,0,1,1,0]]
 
 
 patterns = [open4, simp4, open3,broken3,simp3,simp2]
 
-winning = [1500, 800, 500, 400, 100, 10, 5]
+winning = [2000, 1000, 800, 400, 200, 10, 5]
 
 # 00 01 02 03 04
 # 10 11 12 13 14
@@ -35,7 +31,6 @@ winning = [1500, 800, 500, 400, 100, 10, 5]
 import copy
 
 def getRows(board, pos):
-    board[pos[0]][pos[1]] = taken
     row = board[pos[0]]
     col = [row[pos[1]] for row in board]
     diag1 = []
@@ -71,7 +66,6 @@ def getRows(board, pos):
             for j in range(pos[0] + pos[1], -1, -1):
                 diag2.append(board[i][j])
                 i += 1
-    board[pos[0]][pos[1]] = 0
     return [row, col, diag1, diag2]
 
 
@@ -80,8 +74,6 @@ def pattern(row,cur):
     for i in row:
         if i == cur:
             res.append(1)
-        elif i == taken:
-            res.append(2)
         elif i == empty:
             res.append(0)
         else:
@@ -91,8 +83,10 @@ def pattern(row,cur):
 
 
 def eval(board, cur, pos):
+    temp = copy.deepcopy(board)
+    temp[pos[0]][pos[1]] = cur
     adv = white if cur == black else black
-    checks = getRows(board,pos)
+    checks = getRows(temp,pos)
     # pattern(row,cur), pattern(col,cur), pattern(diag1,cur), pattern(diag2,cur)
     # checks = [row, col, diag1, diag2]
     winning_checks = [pattern(i, cur) for i in checks]
@@ -105,17 +99,16 @@ def eval(board, cur, pos):
     # print(threat_value,winning_value)
     winning_val = sum(i[0] * i[1] for i in zip(winning, winning_value))
     winning_val += sum(i[0] * i[1] for i in zip(winning, threat_value))
-    print(winning_val)
     return winning_val
 
 
 def threat(checks):
     bool_list = []
-    for f in fiverow:
-        for check in checks:
-            for i in range(len(check) - len(f) + 1):
-                if check[i: i + len(f)] == f:
-                    return fivewin
+
+    for check in checks:
+        for i in range(len(check) - len(fiverow) + 1):
+            if check[i: i + len(fiverow)] == fiverow:
+                return fivewin
 
     for pat in patterns:
         res = 0
@@ -138,10 +131,10 @@ def findMax(board, cur,upper, lower, left, right):
                 val = eval(board, cur, [i, j])
                 if val > fivewin:
                     return [i,j]
-                if val > maxval:
+                if val >= maxval:
                     bestpos = [i,j]
                     maxval = val
-                print("position %d %d val = %d" % (i, j, val))
+                # print("position %d %d val = %d" % (i, j, val))
     return bestpos
 
 def check_five(row):
@@ -168,9 +161,21 @@ def simple(board,check_size,pos,cur):
     right = pos[1] + check_size if pos[1] + check_size < size else size
     left = pos[1] - check_size if pos[1] - check_size >= 0 else 0
     ret = findMax(board,cur,upper,lower,left,right)
-    print(ret)
     return ret
 
+
+def display_board(board):
+    print("-"*(board_size*2+1))
+    for i in range(board_size):
+        print("|",end="")
+        for j in range(board_size):
+            if board[i][j] == black:
+                print("b",end="|")
+            elif board[i][j]== white:
+                print("w",end="|")
+            else:
+                print(" ",end="|")
+        print("\n" + "-" * (board_size * 2+1))
 
 
 # Press the green button in the gutter to run the script.
@@ -183,48 +188,30 @@ if __name__ == '__main__':
     #             [0,0,1,0,1,0,0,0],
     #             [0,0,0,0,0,0,0,0],
     #             [0,0,0,0,0,0,0,0]]
-
+    cur = black
     board = [[0, 0, 0, 0, 0, 0, 0, 0],
              [0, 0, 0, 0, 0, 0, 0, 0],
              [0, 0, 0, 0, 0, 0, 0, 0],
-             [0, 0, 0, 1, 2, 0, 0, 0],
-             [0, 0, 0, 2, 0, 0, 0, 0],
-             [0, 0, 1, 0, 0, 0, 0, 0],
+             [0, 0, 0, 2, 1, 0, 0, 0],
+             [0, 0, 0, 1, 0, 0, 0, 0],
+             [0, 0, 2, 0, 0, 0, 0, 0],
              [0, 0, 0, 0, 0, 0, 0, 0],
              [0, 0, 0, 0, 0, 0, 0, 0]]
     check_size = 3
-    pos = [5,2]
-    size = len(board)
-    upper = pos[0] + check_size if pos[0] + check_size < size else size
-    lower = pos[0] - check_size if pos[0] - check_size >= 0 else 0
-    right = pos[1] + check_size if pos[1] + check_size < size else size
-    left = pos[1] - check_size if pos[1] - check_size >= 0 else 0
-    print(findMax(board, white, upper, lower, left, right))
-
-    print(findMax(board,white,board_size,0,0,board_size))
-    print(eval(board,white,[1,2]))
-    print(getRows(board,[1,2]))
-
-
-
-
-if __name__ == '__main__':
-    cur = black
-    board = [[0, 0, 0, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 1, 2, 0, 0, 0],
-                 [0, 0, 0, 2, 0, 0, 0, 0],
-                 [0, 0, 1, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0, 0, 0],
-                 [0, 0, 0, 0, 0, 0, 0, 0]]
-    prev = [5,2]
+    pos = [5, 2]
     while check_winner(board) == 0:
+        # print(board)
         cur = white if cur == black else black
-        upper = pos[0] + check_size if pos[0] + check_size < board_size else size
+        upper = pos[0] + check_size if pos[0] + check_size < board_size else board_size
         lower = pos[0] - check_size if pos[0] - check_size >= 0 else 0
-        right = pos[1] + check_size if pos[1] + check_size < board_size else size
+        right = pos[1] + check_size if pos[1] + check_size < board_size else board_size
         left = pos[1] - check_size if pos[1] - check_size >= 0 else 0
-        prev = findMax(board, cur, upper, lower, left, right)
-        board[prev[0]][prev[1]] = cur
-    print(board)
+        pos = findMax(board, white, upper, lower, left, right)
+        if not pos:
+            print(eval(board,cur,))
+        board[pos[0]][pos[1]] = cur
+        display_board(board)
+    winner = "black" if check_winner(board) == black else "white"
+    print("winner is %s" %winner)
+
+
