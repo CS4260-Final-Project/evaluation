@@ -1,4 +1,5 @@
 import copy
+
 # value output for five in a row
 fivewin = 100000
 
@@ -9,17 +10,19 @@ black = 1
 white = 2
 
 # stone patterns
-fiverow = [1,1,1,1,1]
-open4 = [[0,1,1,1,1,0],[-1,1,1,0,1,0,1,1,1,-1],[-1,1,1,0,1,0,1,1,1,-1]]
-simp4 = [[-1,1,1,1,1,0],[0,1,1,1,1,-1],[1,1,0,1,1]]
-open3 = [[0,0,1,1,1,0,0],[0,1,0,1,1,0,1,0],[1,0,1,0,1,0,1,0,1]]
-broken3 = [[0,1,1,0,1,0],[0,1,0,1,1,0],[-1,0,1,1,1,0,0],[0,0,1,1,1,0,-1]]
-simp3 = [[-1,1,1,1,0,0],[0,0,1,1,1,-1]]
-simp2 = [[-1,1,1,0,0,0],[0,0,0,1,1,-1],[0,0,1,1,0],[0,1,1,0,0]]
+fiverow = [1, 1, 1, 1, 1]
+open4 = [[0, 1, 1, 1, 1, 0], [-1, 1, 1, 0, 1, 0, 1, 1, 1, -1], [-1, 1, 1, 0, 1, 0, 1, 1, 1, -1]]
+simp4 = [[-1, 1, 1, 1, 1, 0], [0, 1, 1, 1, 1, -1], [1, 1, 0, 1, 1]]
+open3 = [[0, 0, 1, 1, 1, 0, 0], [0, 1, 0, 1, 1, 0, 1, 0], [1, 0, 1, 0, 1, 0, 1, 0, 1]]
+broken3 = [[0, 1, 1, 0, 1, 0], [0, 1, 0, 1, 1, 0], [-1, 0, 1, 1, 1, 0, 0], [0, 0, 1, 1, 1, 0, -1]]
+simp3 = [[-1, 1, 1, 1, 0, 0, 0], [0, 0, 0, 1, 1, 1, -1]]
+open2 = [[0, 0, 1, 1, 0, 0], [0, 1, 1, 0, 0, 0],[0, 0, 0, 1, 1, 0]]
+simp2 = [[-1, 1, 1, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, -1]]
 
-patterns = [open4, simp4, open3,broken3,simp3,simp2]
+patterns = [open4, simp4, open3, broken3, simp3, open2, simp2]
 # winning value for each pattern
-winning = [2000, 1000, 800, 400, 50, 10]
+winning = [5000, 1000, 800, 400, 100, 50, 10]
+
 
 # get the full row, column and two diagonals of a position
 def getRows(board, pos):
@@ -62,7 +65,7 @@ def getRows(board, pos):
 
 
 # translate the given board row to match the notation used in stone patterns
-def pattern(row,cur):
+def pattern(row, cur):
     res = []
     for i in row:
         if i == cur:
@@ -73,24 +76,29 @@ def pattern(row,cur):
             res.append(-1)
     return res
 
+
 # evaluation function
 def eval(board, cur, pos):
     temp = copy.deepcopy(board)
-    temp[pos[0]][pos[1]] = cur
     adv = white if cur == black else black
-    # first gets the 4 "rows" of a position
-    checks = getRows(temp,pos)
-
+    # first gets the 4 "rows" of a position assuming
+    # current play placing a stone
+    temp[pos[0]][pos[1]] = cur
+    checks_cur = getRows(temp, pos)
     # determining how much advantage it will gain playing here
-    winning_checks = [pattern(i, cur) for i in checks]
+    winning_checks = [pattern(i, cur) for i in checks_cur]
     winning_value = threat(winning_checks)
-    # determining how much threat eliminated playing here
-    threat_checks = [pattern(i, adv) for i in checks]
+
+    # then assume adv plays this position
+    temp[pos[0]][pos[1]] = adv
+    checks_adv = getRows(temp, pos)
+    # determining how much threat will be imposed if adv plays here
+    threat_checks = [pattern(i, adv) for i in checks_adv]
     threat_value = threat(threat_checks)
 
     # if encountering a five in a row situation
     # this position must be taken, directly return
-    if(winning_value == fivewin or threat_value == fivewin):
+    if (winning_value == fivewin or threat_value == fivewin):
         return fivewin
 
     # else adding the advantage and threat elimination value together
@@ -119,43 +127,49 @@ def threat(checks):
         count_list.append(res)
     return count_list
 
+
 # find an empty space that is close to the given position
-def findempty(board,pos):
+def findempty(board, pos):
     for i in range(board_size):
-        upper = pos[0] + i if pos[0] + i < board_size else board_size-1
+        upper = pos[0] + i if pos[0] + i < board_size else board_size - 1
         lower = pos[0] - i if pos[0] - i >= 0 else 0
-        right = pos[1] + i if pos[1] + i < board_size else board_size-1
+        right = pos[1] + i if pos[1] + i < board_size else board_size - 1
         left = pos[1] - i if pos[1] - i >= 0 else 0
         if board[upper][pos[1]] == empty:
-            return [upper,pos[1]]
+            return [upper, pos[1]]
         if board[lower][pos[1]] == empty:
             return [lower, pos[1]]
         if board[pos[0]][left] == empty:
-            return [pos[0],left]
+            return [pos[0], left]
         if board[pos[0]][right] == empty:
             return [pos[0], right]
         if board[upper][left] == empty:
-            return [upper,left]
+            return [upper, left]
         if board[upper][right] == empty:
             return [upper, right]
         if board[lower][left] == empty:
-            return [lower,left]
+            return [lower, left]
         if board[lower][right] == empty:
             return [lower, right]
 
 
 # find the position that will give the max value
 # that is within the check_size range
-def findMax(board, cur,pos,check_size):
+def findMax(board, cur, pos, check_size):
     # if board already full, return 0
-    if all (all(j != 0 for j in i) for i in board):
+    if all(all(j != 0 for j in i) for i in board):
         return 0
-
-    # define the range
-    upper = pos[0] + check_size if pos[0] + check_size < board_size else board_size
-    lower = pos[0] - check_size if pos[0] - check_size >= 0 else 0
-    right = pos[1] + check_size if pos[1] + check_size < board_size else board_size
-    left = pos[1] - check_size if pos[1] - check_size >= 0 else 0
+    if check_size == board_size:
+        upper = board_size
+        lower = 0
+        right = board_size
+        left = 0
+    else:
+        # define the range
+        upper = pos[0] + check_size if pos[0] + check_size < board_size else board_size
+        lower = pos[0] - check_size if pos[0] - check_size >= 0 else 0
+        right = pos[1] + check_size if pos[1] + check_size < board_size else board_size
+        left = pos[1] - check_size if pos[1] - check_size >= 0 else 0
     maxval = 0
     bestpos = []
     # loop within this range and find the best position
@@ -164,9 +178,9 @@ def findMax(board, cur,pos,check_size):
             if board[i][j] == 0:
                 val = eval(board, cur, [i, j])
                 if val > fivewin:
-                    return [i,j]
+                    return [i, j]
                 if val > maxval:
-                    bestpos = [i,j]
+                    bestpos = [i, j]
                     maxval = val
                 # print("position %d %d val = %d" % (i, j, val))
 
@@ -177,17 +191,19 @@ def findMax(board, cur,pos,check_size):
 
     return bestpos
 
+
 # check if there is five in a row
 def check_five(row):
-    for i in range(len(row)-4):
-        if row[i] == row[i+1] and row[i] == row[i+2] and row[i] == row[i+3] and row[i] == row[i+4]:
+    for i in range(len(row) - 4):
+        if row[i] == row[i + 1] and row[i] == row[i + 2] and row[i] == row[i + 3] and row[i] == row[i + 4]:
             return row[i]
     return 0
+
 
 # check who is the winner
 def check_winner(board):
     for i in range(board_size):
-        checks = [getRows(board, [i, i]),getRows(board, [0, i]),getRows(board, [i, 0])]
+        checks = [getRows(board, [i, i]), getRows(board, [0, i]), getRows(board, [i, 0])]
         for check in checks:
             for row in check:
                 ret = check_five(row)
@@ -198,17 +214,17 @@ def check_winner(board):
 
 # display the board
 def display_board(board):
-    print("-"*(board_size*2+1))
+    print("-" * (board_size * 2 + 1))
     for i in range(board_size):
-        print("|",end="")
+        print("|", end="")
         for j in range(board_size):
             if board[i][j] == black:
-                print("b",end="|")
-            elif board[i][j]== white:
-                print("w",end="|")
+                print("b", end="|")
+            elif board[i][j] == white:
+                print("w", end="|")
             else:
-                print(" ",end="|")
-        print("\n" + "-" * (board_size * 2+1))
+                print(" ", end="|")
+        print("\n" + "-" * (board_size * 2 + 1))
 
 
 # Press the green button in the gutter to run the script.
@@ -226,12 +242,12 @@ if __name__ == '__main__':
     board = [[0, 0, 0, 0, 0, 0, 0, 0],
              [0, 0, 0, 0, 0, 0, 0, 0],
              [0, 0, 0, 0, 0, 0, 0, 0],
-             [0, 0, 0, 2, 1, 0, 0, 0],
+             [0, 0, 2, 2, 0, 0, 0, 0],
              [0, 0, 0, 1, 0, 0, 0, 0],
-             [0, 0, 2, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0, 0, 0],
              [0, 0, 0, 0, 0, 0, 0, 0],
              [0, 0, 0, 0, 0, 0, 0, 0]]
-    check_size = 4
+    check_size = board_size
     pos = [5, 2]
     while check_winner(board) == 0:
         cur = white if cur == black else black
@@ -239,12 +255,10 @@ if __name__ == '__main__':
         if not pos:
             break
         board[pos[0]][pos[1]] = cur
-        # display_board(board)
-    display_board(board)
+        display_board(board)
+    # display_board(board)
     if pos == 0:
         print("Tied")
     else:
         winner = "black" if check_winner(board) == black else "white"
-        print("winner is %s" %winner)
-
-
+        print("winner is %s" % winner)
